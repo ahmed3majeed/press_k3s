@@ -12,7 +12,9 @@ def patched_get_request_url(self, path: str) -> str:
                 frappe.db.get_value("Server", self.server, "custom_k3s_agent_url")
                 or "http://127.0.0.1:25052"
             ).rstrip("/")
-            return f"{base}/agent/{path.lstrip('/')}"
+            # Field is the Flask origin. Official Press nginx adds /agent/;
+            # kagent flask routes live at the root (/ping, /benches/...).
+            return f"{base}/{path.lstrip('/')}"
 
     if self.server_type in ("Server", "Database Server"):
         proxy = None
