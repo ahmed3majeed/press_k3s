@@ -1,0 +1,42 @@
+{
+  "actions": [],
+  "creation": "2026-08-26 19:40:00",
+  "doctype": "DocType",
+  "engine": "InnoDB",
+  "field_order": ["default_agent_url", "notes"],
+  "fields": [
+    {
+      "default": "http://127.0.0.1:25052",
+      "fieldname": "default_agent_url",
+      "fieldtype": "Data",
+      "label": "Default K3s Agent URL"
+    },
+    {
+      "fieldname": "notes",
+      "fieldtype": "Small Text",
+      "label": "Notes"
+    }
+  ],
+  "issingle": 1,
+  "links": [],
+  "modified": "2026-08-26 19:40:00",
+  "modified_by": "Administrator",
+  "module": "K3s",
+  "name": "K3s Settings",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "print": 1,
+      "read": 1,
+      "role": "System Manager",
+      "share": 1,
+      "write": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "states": []
+}

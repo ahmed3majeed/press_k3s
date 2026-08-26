@@ -1,0 +1,35 @@
+from __future__ import annotations
+
+import frappe
+
+
+def patched_get_request_url(self, path: str) -> str:
+    """Same contract as press.agent.Agent._get_request_url, with a k3s escape hatch."""
+    if self.server_type == "Server" and self.server:
+        enabled = frappe.db.get_value("Server", self.server, "custom_k3s_enabled")
+        if enabled:
+            base = (
+                frappe.db.get_value("Server", self.server, "custom_k3s_agent_url")
+                or "http://127.0.0.1:25052"
+            ).rstrip("/")
+            return f"{base}/agent/{path.lstrip('/')}"
+
+    if self.server_type in ("Server", "Database Server"):
+        proxy = None
+        server_ip, server_private_ip, server_cluster = frappe.db.get_value(
+            self.server_type, self.server, ("ip", "private_ip", "cluster")
+        )
+        if not server_ip and server_private_ip and not frappe.flags.in_test:
+            proxy = frappe.db.get_value(
+                "Proxy Server",
+                {
+                    "status": "Active",
+                    "cluster": server_cluster,
+                    "use_as_proxy_for_agent_and_metrics": 1,
+                },
+            )
+        if proxy:
+            proxy_port = 443 if proxy not in self._Agent__servers_using_alt_ports else 8443
+            return f"https://{proxy}:{proxy_port}/{self.server}:{self.port}/agent/{path}"
+
+    return f"https://{self.server}:{self.port}/agent/{path}"
