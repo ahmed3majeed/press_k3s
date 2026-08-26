@@ -31,7 +31,11 @@ def patched_get_request_url(self, path: str) -> str:
                 },
             )
         if proxy:
-            proxy_port = 443 if proxy not in self._Agent__servers_using_alt_ports else 8443
+            # Name-mangled private attribute on press.agent.Agent; fall back to an
+            # empty set (i.e. always port 443) if a future Press release renames
+            # or drops it, rather than raising AttributeError on every request.
+            alt_port_servers = getattr(self, "_Agent__servers_using_alt_ports", frozenset())
+            proxy_port = 8443 if proxy in alt_port_servers else 443
             return f"https://{proxy}:{proxy_port}/{self.server}:{self.port}/agent/{path}"
 
     return f"https://{self.server}:{self.port}/agent/{path}"
