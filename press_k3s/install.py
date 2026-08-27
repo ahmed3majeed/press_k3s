@@ -1,7 +1,7 @@
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
-from press_k3s import apply_agent_patch, apply_site_patch
+from press_k3s import apply_agent_patch, apply_site_patch, apply_new_site_job_patch
 
 
 CUSTOM_FIELDS = {
@@ -39,9 +39,11 @@ def after_install():
     create_custom_fields(CUSTOM_FIELDS, update=True)
     apply_agent_patch()
     apply_site_patch()
+    apply_new_site_job_patch()
 
 
 def after_migrate():
     create_custom_fields(CUSTOM_FIELDS, update=True)
     apply_agent_patch()
     apply_site_patch()
+    apply_new_site_job_patch()

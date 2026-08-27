@@ -28,5 +28,19 @@ def apply_site_patch():
     Site.create_agent_request = build_patched_create_agent_request(current)
 
 
+def apply_new_site_job_patch():
+    try:
+        from press.press.doctype.site import site as site_mod
+        from press_k3s.overrides.site import build_patched_process_new_site_job_update
+    except Exception:
+        return
+
+    current = getattr(site_mod, "process_new_site_job_update", None)
+    if current is None or getattr(current, "_press_k3s", False):
+        return
+    site_mod.process_new_site_job_update = build_patched_process_new_site_job_update(current)
+
+
 apply_agent_patch()
 apply_site_patch()
+apply_new_site_job_patch()

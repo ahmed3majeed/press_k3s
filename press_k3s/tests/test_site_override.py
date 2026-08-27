@@ -86,5 +86,56 @@ class BuildPatchedCreateAgentRequestTests(unittest.TestCase):
         self.agent_instance.new_upstream_file.assert_not_called()
 
 
+class FakeJob:
+    def __init__(self, site, job_type, status):
+        self.site = site
+        self.job_type = job_type
+        self.status = status
+
+
+class ProcessNewSiteJobUpdateTests(unittest.TestCase):
+    def setUp(self):
+        self.frappe = _install_fake_frappe()
+        _reset_press_k3s_modules()
+        from press_k3s.overrides.site import build_patched_process_new_site_job_update
+
+        self.original = MagicMock(name="original_process_new_site_job_update")
+        self.patched = build_patched_process_new_site_job_update(self.original)
+
+    def tearDown(self):
+        sys.modules.pop("frappe", None)
+        _reset_press_k3s_modules()
+
+    def test_k3s_new_site_success_sets_active(self):
+        def get_value(doctype, name, field=None, **kwargs):
+            if doctype == "Site" and field == "server":
+                return "k3s-test.None"
+            if doctype == "Server" and field == "custom_k3s_enabled":
+                return True
+            if doctype == "Site" and field == "status":
+                return "Pending"
+            return None
+
+        self.frappe.db.get_value.side_effect = get_value
+        job = FakeJob("siteuy.local", "New Site", "Success")
+        self.patched(job)
+        self.original.assert_not_called()
+        self.frappe.db.set_value.assert_called_with("Site", "siteuy.local", "status", "Active")
+
+    def test_not_k3s_calls_original(self):
+        def get_value(doctype, name, field=None, **kwargs):
+            if doctype == "Site" and field == "server":
+                return "docker.example"
+            if doctype == "Server" and field == "custom_k3s_enabled":
+                return False
+            return None
+
+        self.frappe.db.get_value.side_effect = get_value
+        job = FakeJob("x.example", "New Site", "Success")
+        self.patched(job)
+        self.original.assert_called_once_with(job)
+        self.frappe.db.set_value.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

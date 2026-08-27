@@ -36,3 +36,43 @@ def build_patched_create_agent_request(original):
 
     patched_create_agent_request._press_k3s = True
     return patched_create_agent_request
+
+
+def build_patched_process_new_site_job_update(original):
+    """Wrap process_new_site_job_update.
+
+    Stock Press only sets Site Active when New Site *and* Add Site to Upstream
+    both succeed. k3s skips the proxy upstream job, so treat New Site Success
+    as enough to activate.
+    """
+
+    def patched_process_new_site_job_update(job):
+        site_name = getattr(job, "site", None)
+        job_type = getattr(job, "job_type", None)
+        status = getattr(job, "status", None)
+        if site_name and job_type in ("New Site", "New Site from Backup") and status == "Success":
+            server = frappe.db.get_value("Site", site_name, "server")
+            if server and frappe.db.get_value("Server", server, "custom_k3s_enabled"):
+                current = frappe.db.get_value("Site", site_name, "status")
+                if current != "Active":
+                    site = None
+                    try:
+                        from press.press.doctype.site.site import Site as PressSite
+
+                        site = PressSite("Site", site_name)
+                    except Exception:
+                        site = None
+                    if site is not None:
+                        for method in ("sync_apps", "enable_subscription"):
+                            fn = getattr(site, method, None)
+                            if callable(fn):
+                                try:
+                                    fn()
+                                except Exception:
+                                    pass
+                    frappe.db.set_value("Site", site_name, "status", "Active")
+                return None
+        return original(job)
+
+    patched_process_new_site_job_update._press_k3s = True
+    return patched_process_new_site_job_update
