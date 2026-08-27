@@ -25,7 +25,13 @@ def build_patched_create_agent_request(original):
         else:
             job = agent.new_site(self)
         if job is not None:
-            self.flags.new_site_agent_job_name = getattr(job, "name", job)
+            flags = getattr(self, "flags", None)
+            if flags is None:
+                from types import SimpleNamespace
+
+                flags = SimpleNamespace()
+                self.flags = flags
+            flags.new_site_agent_job_name = getattr(job, "name", job)
         return job
 
     patched_create_agent_request._press_k3s = True
