@@ -1,7 +1,7 @@
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
-from press_k3s import apply_agent_patch
+from press_k3s import apply_agent_patch, apply_site_patch
 
 
 CUSTOM_FIELDS = {
@@ -22,15 +22,26 @@ CUSTOM_FIELDS = {
             "default": "http://127.0.0.1:25052",
             "description": "Base URL of kagent, no trailing /agent.",
         },
-    ]
+    ],
+    "Bench": [
+        {
+            "fieldname": "custom_k3s_bench_name",
+            "label": "K3s Bench Name",
+            "fieldtype": "Data",
+            "insert_after": "status",
+            "description": "kagent bench id, e.g. bench-v15.",
+        },
+    ],
 }
 
 
 def after_install():
     create_custom_fields(CUSTOM_FIELDS, update=True)
     apply_agent_patch()
+    apply_site_patch()
 
 
 def after_migrate():
     create_custom_fields(CUSTOM_FIELDS, update=True)
     apply_agent_patch()
+    apply_site_patch()

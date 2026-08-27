@@ -3,6 +3,16 @@ from __future__ import annotations
 import frappe
 
 
+def _rewrite_bench_path(path: str) -> str:
+    """Swap a Press Bench name for its kagent bench name in a `benches/<name>/...` path."""
+    segments = path.split("/")
+    if len(segments) >= 2 and segments[0] == "benches" and segments[1]:
+        k3s_bench_name = frappe.db.get_value("Bench", segments[1], "custom_k3s_bench_name")
+        if k3s_bench_name:
+            segments[1] = k3s_bench_name
+    return "/".join(segments)
+
+
 def patched_get_request_url(self, path: str) -> str:
     """Same contract as press.agent.Agent._get_request_url, with a k3s escape hatch."""
     if self.server_type == "Server" and self.server:
@@ -14,7 +24,7 @@ def patched_get_request_url(self, path: str) -> str:
             ).rstrip("/")
             # Field is the Flask origin. Official Press nginx adds /agent/;
             # kagent flask routes live at the root (/ping, /benches/...).
-            return f"{base}/{path.lstrip('/')}"
+            return f"{base}/{_rewrite_bench_path(path.lstrip('/'))}"
 
     if self.server_type in ("Server", "Database Server"):
         proxy = None

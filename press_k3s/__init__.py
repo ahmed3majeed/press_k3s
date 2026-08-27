@@ -15,4 +15,18 @@ def apply_agent_patch():
     Agent._get_request_url = patched_get_request_url
 
 
+def apply_site_patch():
+    try:
+        from press.press.doctype.site.site import Site
+        from press_k3s.overrides.site import build_patched_create_agent_request
+    except Exception:
+        return
+
+    current = getattr(Site, "create_agent_request", None)
+    if current is None or getattr(current, "_press_k3s", False):
+        return
+    Site.create_agent_request = build_patched_create_agent_request(current)
+
+
 apply_agent_patch()
+apply_site_patch()

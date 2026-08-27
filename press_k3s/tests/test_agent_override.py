@@ -44,11 +44,36 @@ class PatchedGetRequestUrlTests(unittest.TestCase):
         self.frappe.db.get_value.side_effect = [
             True,  # custom_k3s_enabled
             "http://10.0.0.5:25052/",  # custom_k3s_agent_url, trailing slash on purpose
+            None,  # Bench.custom_k3s_bench_name, not set -> path unchanged
         ]
 
         url = self.patched_get_request_url(agent, "/benches/bench-1/status")
 
         self.assertEqual(url, "http://10.0.0.5:25052/benches/bench-1/status")
+
+    def test_k3s_enabled_rewrites_bench_name_in_path(self):
+        agent = FakeAgent("Server", "s1.example.com", 443)
+        self.frappe.db.get_value.side_effect = [
+            True,  # custom_k3s_enabled
+            "http://10.0.0.5:25052",  # custom_k3s_agent_url
+            "bench-v15",  # Bench.custom_k3s_bench_name
+        ]
+
+        url = self.patched_get_request_url(agent, "benches/bench--k3s-test/sites")
+
+        self.assertEqual(url, "http://10.0.0.5:25052/benches/bench-v15/sites")
+        self.frappe.db.get_value.assert_called_with(
+            "Bench", "bench--k3s-test", "custom_k3s_bench_name"
+        )
+
+    def test_k3s_enabled_ping_path_unaffected_by_bench_rewrite(self):
+        agent = FakeAgent("Server", "s1.example.com", 443)
+        self.frappe.db.get_value.side_effect = [True, None]
+
+        url = self.patched_get_request_url(agent, "ping")
+
+        self.assertEqual(url, "http://127.0.0.1:25052/ping")
+        self.assertEqual(self.frappe.db.get_value.call_count, 2)
 
     def test_k3s_enabled_without_url_falls_back_to_default_flask_port(self):
         agent = FakeAgent("Server", "s1.example.com", 443)
